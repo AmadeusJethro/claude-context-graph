@@ -1,0 +1,98 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Decision Event",
+  "description": "A decision trace capturing what was decided, why, and what happened",
+
+  "definitions": {
+    "lightweight": {
+      "type": "object",
+      "required": ["id", "ts", "p", "t", "w", "title", "choice", "why", "out"],
+      "properties": {
+        "id": {"type": "string", "description": "Unique identifier (short UUID)"},
+        "ts": {"type": "string", "format": "date-time", "description": "Timestamp"},
+        "p": {"type": "string", "description": "Project name"},
+        "t": {"type": "string", "enum": ["arch", "impl", "debug", "exp", "exc", "thresh", "model", "data", "refactor"], "description": "Decision type"},
+        "w": {"type": "integer", "minimum": 1, "maximum": 3, "description": "Weight: 1=light, 2=standard, 3=heavy"},
+        "title": {"type": "string", "maxLength": 100, "description": "Brief title"},
+        "choice": {"type": "string", "maxLength": 200, "description": "What was decided"},
+        "why": {"type": "string", "maxLength": 300, "description": "Why this choice"},
+        "out": {"type": "string", "enum": ["s", "f", "p", "x", "?"], "description": "Outcome: s=success, f=failed, p=partial, x=superseded, ?=pending"},
+        "ent": {"type": "array", "items": {"type": "string"}, "description": "Entity tags for search"}
+      }
+    },
+
+    "heavyweight": {
+      "allOf": [
+        {"$ref": "#/definitions/lightweight"},
+        {
+          "type": "object",
+          "properties": {
+            "ctx": {
+              "type": "object",
+              "properties": {
+                "task": {"type": "string", "maxLength": 200},
+                "trigger": {"type": "string", "maxLength": 200},
+                "constraints": {"type": "array", "items": {"type": "string"}, "maxItems": 5},
+                "state": {"type": "string", "maxLength": 200}
+              }
+            },
+            "dec": {
+              "type": "object",
+              "properties": {
+                "choice": {"type": "string"},
+                "alt": {
+                  "type": "array",
+                  "maxItems": 3,
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "opt": {"type": "string", "maxLength": 50},
+                      "no": {"type": "string", "maxLength": 100}
+                    }
+                  }
+                },
+                "conf": {"type": "string", "enum": ["high", "med", "low", "exp"]},
+                "rev": {"type": "boolean", "description": "Is this reversible?"}
+              }
+            },
+            "impl": {
+              "type": "object",
+              "properties": {
+                "files": {"type": "array", "items": {"type": "string"}},
+                "commit": {"type": "string"}
+              }
+            },
+            "metrics": {"type": "object", "additionalProperties": {"type": "number"}},
+            "learned": {"type": "string", "maxLength": 200},
+            "links": {"type": "array", "items": {"type": "string"}}
+          }
+        }
+      ]
+    }
+  },
+
+  "oneOf": [
+    {"$ref": "#/definitions/lightweight"},
+    {"$ref": "#/definitions/heavyweight"}
+  ],
+
+  "type_codes": {
+    "arch": "architecture",
+    "impl": "implementation",
+    "debug": "debugging",
+    "exp": "experiment",
+    "exc": "exception",
+    "thresh": "threshold",
+    "model": "model selection",
+    "data": "data source",
+    "refactor": "refactoring"
+  },
+
+  "outcome_codes": {
+    "s": "success",
+    "f": "failed",
+    "p": "partial",
+    "x": "superseded",
+    "?": "pending"
+  }
+}

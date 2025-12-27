@@ -1,0 +1,14 @@
+# Don't commit actual decision data
+decisions.jsonl
+entities.json
+local.jsonl
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
