@@ -1,0 +1,219 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Context Graph Schema v2",
+  "description": "Enhanced context graph with trajectory capture, structural embeddings, and world model support",
+  "version": "2.0.0",
+
+  "definitions": {
+    "trajectory_step": {
+      "type": "object",
+      "description": "A single step in an agent's walk through problem space",
+      "required": ["seq", "action", "target"],
+      "properties": {
+        "seq": {"type": "integer", "description": "Step sequence number"},
+        "action": {
+          "type": "string",
+          "enum": ["read", "search", "grep", "edit", "run", "ask", "think", "branch", "backtrack"],
+          "description": "What the agent did"
+        },
+        "target": {"type": "string", "description": "File, query, or command target"},
+        "result": {"type": "string", "enum": ["found", "empty", "error", "insight", "dead_end"], "description": "Outcome"},
+        "pivot": {"type": "boolean", "description": "Did this step change direction?"},
+        "entities_touched": {"type": "array", "items": {"type": "string"}, "description": "Entities encountered"}
+      }
+    },
+
+    "trajectory": {
+      "type": "object",
+      "description": "Complete walk through problem space leading to a decision",
+      "required": ["tid", "ts_start", "ts_end", "steps", "decision_id"],
+      "properties": {
+        "tid": {"type": "string", "description": "Trajectory ID"},
+        "ts_start": {"type": "string", "format": "date-time"},
+        "ts_end": {"type": "string", "format": "date-time"},
+        "steps": {"type": "array", "items": {"$ref": "#/definitions/trajectory_step"}},
+        "decision_id": {"type": "string", "description": "Decision this trajectory led to"},
+        "backtrack_count": {"type": "integer", "description": "How many times agent reversed direction"},
+        "branch_count": {"type": "integer", "description": "How many parallel paths explored"},
+        "depth": {"type": "integer", "description": "Max depth of exploration"},
+        "breadth": {"type": "integer", "description": "Total unique entities touched"}
+      }
+    },
+
+    "decision_event_v2": {
+      "type": "object",
+      "description": "Enhanced decision event with trajectory link",
+      "required": ["id", "ts", "p", "t", "w", "title", "choice", "why", "out"],
+      "properties": {
+        "id": {"type": "string", "description": "Decision ID"},
+        "ts": {"type": "string", "format": "date-time"},
+        "p": {"type": "string", "description": "Project"},
+        "t": {"type": "string", "enum": ["arch", "impl", "debug", "exp", "exc", "thresh", "model", "data", "refactor"]},
+        "w": {"type": "integer", "minimum": 1, "maximum": 3},
+        "title": {"type": "string"},
+        "choice": {"type": "string"},
+        "why": {"type": "string"},
+        "out": {"type": "string", "enum": ["s", "f", "p", "x", "?"]},
+        "ent": {"type": "array", "items": {"type": "string"}},
+
+        "trajectory_id": {"type": "string", "description": "Link to trajectory that led here"},
+
+        "ctx": {
+          "type": "object",
+          "properties": {
+            "task": {"type": "string"},
+            "trigger": {"type": "string"},
+            "state_before": {"type": "object", "description": "Relevant state when decision started"},
+            "constraints": {"type": "array", "items": {"type": "string"}}
+          }
+        },
+
+        "dec": {
+          "type": "object",
+          "properties": {
+            "alt": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "opt": {"type": "string"},
+                  "no": {"type": "string"},
+                  "explored_at_step": {"type": "integer", "description": "When this was considered in trajectory"}
+                }
+              }
+            },
+            "conf": {"type": "string", "enum": ["high", "med", "low", "exp"]},
+            "rev": {"type": "boolean"}
+          }
+        },
+
+        "metrics": {"type": "object", "additionalProperties": {"type": "number"}},
+        "learned": {"type": "string"},
+        "links": {"type": "array", "items": {"type": "string"}, "description": "Related decision IDs"},
+
+        "pattern_match": {
+          "type": "object",
+          "description": "Similar past decisions that informed this one",
+          "properties": {
+            "similar_decisions": {"type": "array", "items": {"type": "string"}},
+            "pattern_type": {"type": "string", "description": "What pattern was recognized"},
+            "deviation": {"type": "string", "description": "How this differs from pattern"}
+          }
+        }
+      }
+    },
+
+    "entity_embedding": {
+      "type": "object",
+      "description": "Structural embedding for an entity based on co-occurrence",
+      "properties": {
+        "entity": {"type": "string"},
+        "cooccurrence": {
+          "type": "object",
+          "additionalProperties": {"type": "integer"},
+          "description": "Map of entity -> count of co-occurrences in decisions"
+        },
+        "trajectory_cooccurrence": {
+          "type": "object",
+          "additionalProperties": {"type": "integer"},
+          "description": "Map of entity -> count of co-occurrences in trajectories"
+        },
+        "decision_types": {
+          "type": "object",
+          "additionalProperties": {"type": "integer"},
+          "description": "Which decision types this entity appears in"
+        },
+        "outcome_distribution": {
+          "type": "object",
+          "properties": {
+            "s": {"type": "integer"},
+            "f": {"type": "integer"},
+            "p": {"type": "integer"}
+          },
+          "description": "Outcomes of decisions involving this entity"
+        },
+        "avg_trajectory_depth": {"type": "number", "description": "How deep agents go when exploring this entity"},
+        "structural_cluster": {"type": "string", "description": "Cluster ID for structurally equivalent entities"}
+      }
+    },
+
+    "pattern": {
+      "type": "object",
+      "description": "Extracted pattern from multiple decisions/trajectories",
+      "required": ["pid", "name", "instances"],
+      "properties": {
+        "pid": {"type": "string", "description": "Pattern ID"},
+        "name": {"type": "string"},
+        "description": {"type": "string"},
+        "trigger_conditions": {
+          "type": "array",
+          "items": {"type": "string"},
+          "description": "When does this pattern apply?"
+        },
+        "typical_trajectory": {
+          "type": "array",
+          "items": {"type": "string"},
+          "description": "Typical sequence of actions"
+        },
+        "typical_outcome": {"type": "string"},
+        "success_rate": {"type": "number"},
+        "instances": {
+          "type": "array",
+          "items": {"type": "string"},
+          "description": "Decision IDs that follow this pattern"
+        },
+        "counter_instances": {
+          "type": "array",
+          "items": {"type": "string"},
+          "description": "Decisions that deviated and what happened"
+        }
+      }
+    },
+
+    "prediction": {
+      "type": "object",
+      "description": "Prediction about a hypothetical decision",
+      "properties": {
+        "query": {"type": "string", "description": "What-if question asked"},
+        "similar_decisions": {"type": "array", "items": {"type": "string"}},
+        "predicted_outcome": {"type": "string"},
+        "confidence": {"type": "number", "minimum": 0, "maximum": 1},
+        "key_factors": {"type": "array", "items": {"type": "string"}},
+        "risks": {"type": "array", "items": {"type": "string"}},
+        "suggested_trajectory": {"type": "array", "items": {"type": "string"}}
+      }
+    }
+  },
+
+  "file_structure": {
+    "decisions.jsonl": "Decision events (one per line)",
+    "trajectories.jsonl": "Agent trajectories (one per line)",
+    "entities.json": "Entity index with embeddings",
+    "patterns.json": "Extracted patterns",
+    "cooccurrence.json": "Entity co-occurrence matrix"
+  },
+
+  "type_codes": {
+    "arch": "architecture",
+    "impl": "implementation",
+    "debug": "debugging",
+    "exp": "experiment",
+    "exc": "exception",
+    "thresh": "threshold",
+    "model": "model selection",
+    "data": "data source",
+    "refactor": "refactoring"
+  },
+
+  "trajectory_action_codes": {
+    "read": "Read a file",
+    "search": "Glob/find files",
+    "grep": "Search content",
+    "edit": "Modify a file",
+    "run": "Execute command",
+    "ask": "Query user",
+    "think": "Internal reasoning",
+    "branch": "Explore alternative",
+    "backtrack": "Abandon path"
+  }
+}

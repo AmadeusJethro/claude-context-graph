@@ -22,6 +22,34 @@ A simple append-only log of decision traces that lives in your Claude config. Ea
 
 Inspired by [this article on context graphs](https://x.com/JayaGup10/status/1871218022844043660) - but scaled down for personal use with Claude Code.
 
+## v2: Trajectory Capture and World Models (NEW)
+
+v2 adds three capabilities inspired by [Animesh Koratana's "How to Build a Context Graph"](https://x.com/akoratana/status/1873014809657241870):
+
+### The Two Clocks Problem
+v1 captured decisions (state changes). v2 captures the **trajectory** - the walk through problem space that led to each decision. This is the difference between "we chose GradientBoosting" and "we tried RandomForest first, found overfitting, backtracked, then tested GradientBoosting with regularization."
+
+### Schema as Output
+Instead of manually tagging entities, v2 tracks co-occurrence patterns. Entities that appear together in decisions/trajectories are structurally related. This enables "what entities behave similarly?" queries.
+
+### World Model / Simulation
+v1 is retrieval-only. v2 adds prediction: "if I do X, what typically happens based on similar past decisions?" The graph becomes a simulator, not just a search index.
+
+New files:
+- `schema-v2.json` - Enhanced schema with trajectories, patterns, predictions
+- `skill-v2.md` - Full skill documentation with new commands
+
+New commands:
+- `/context trace` - Start capturing your problem-solving trajectory
+- `/context predict <scenario>` - What typically happens in this scenario?
+- `/context similar <entity>` - Find structurally equivalent entities
+- `/context why <id>` - Full trajectory behind a decision
+- `/context pattern` - View/create patterns
+
+See `skill-v2.md` for complete documentation.
+
+---
+
 ## Setup
 
 ### 1. Create the storage directories
