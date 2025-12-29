@@ -1,31 +1,55 @@
-# Context Graph Skill v2
+# Context Graph Skill v2 (FULLY AUTOMATIC)
 
-Enhanced decision trace system with trajectory capture, structural embeddings, and world model support.
+Decision trace system with trajectory capture, structural embeddings, and world model support.
 
-Based on: "How to Build a Context Graph" - the insight that the event clock (trajectories + reasoning) matters more than state.
+Based on Animesh Koratana's "How to Build a Context Graph" - captures the WALK through problem space, not just final decisions.
 
-## Core Concepts
-
-### The Two Clocks
-- **State Clock**: What's true now (your current decisions.jsonl)
-- **Event Clock**: How it became true (NEW: trajectories.jsonl)
-
-Your original graph captured state changes. V2 captures the WALK through problem space that led to each decision.
-
-### Schema as Output
-Entities and their relationships emerge from traversal patterns, not manual tagging. V2 tracks:
-- Co-occurrence: which entities appear together in decisions/trajectories
-- Structural equivalence: entities that play similar roles even if never directly connected
-
-### World Model
-The graph should enable simulation, not just retrieval. V2 adds:
-- Pattern extraction from decision sequences
-- Predictive queries: "what typically happens when..."
-- Counterfactual reasoning: "what if I had done X instead"
+**IMPORTANT: This skill runs automatically. User never types commands. Everything happens silently as exhaust from normal work.**
 
 ---
 
-## New Commands
+## What Happens Automatically
+
+### `/context log` - Log a decision
+Log a decision with context, alternatives, and reasoning.
+
+When invoked, I will:
+1. Ask about the decision (or infer from recent work)
+2. Capture: type, title, choice, alternatives rejected, reasoning
+3. Assign weight (1-3) based on significance
+4. Link to active trajectory if one exists
+5. Suggest similar past decisions
+6. Update co-occurrence matrix
+
+### `/context search <query>` - Search for precedent
+Find similar past decisions.
+
+Examples:
+- `/context search position sizing` - Find decisions about position sizing
+- `/context search debugging timezone` - Find timezone debugging approaches
+- `/context search failed` - Find failed decisions and lessons learned
+
+### `/context recent [n]` - Show recent decisions
+Display the last N decisions (default 10).
+
+### `/context project <name>` - Project history
+Show all decisions for a specific project.
+
+### `/context entity <tag>` - Entity lookup
+Find all decisions tagged with an entity. Also shows:
+- Co-occurring entities
+- Success rate for decisions involving this entity
+- Structural cluster membership
+
+### `/context stats` - Graph statistics
+Show decision counts by type, project, outcome. Also shows:
+- Trajectory metrics (avg depth, backtrack rate)
+- Pattern counts
+- Entity cluster info
+
+---
+
+## NEW: Trajectory Commands
 
 ### `/context trace` - Start trajectory capture
 Begin capturing tool calls as trajectory steps. Run before non-trivial investigation.
@@ -36,10 +60,17 @@ When active, I will log:
 - Pivots (when direction changes)
 - Entities encountered
 
-End with `/context trace stop` or let it auto-close when decision is logged.
+End with `/context trace stop` or auto-close when decision is logged.
 
 ### `/context trace show` - View current trajectory
 Show the trajectory being captured.
+
+### `/context why <decision-id>` - Full trace
+Show the complete trajectory that led to a decision, not just the final choice.
+
+---
+
+## NEW: Prediction Commands
 
 ### `/context predict <scenario>` - What-if query
 Ask what typically happens in a scenario based on past decisions.
@@ -59,73 +90,69 @@ I will:
 Find entities that play similar roles based on co-occurrence patterns.
 
 Example: `/context similar gradient-boosting`
-Might return: "Structurally similar to: regularization, overfitting-prevention, ml-model"
+Returns: "Structurally similar to: regularization, overfitting-prevention, ml-model"
 
-### `/context pattern <name>` - View/create pattern
+### `/context pattern [name]` - View/create pattern
 View an extracted pattern or mark current decision as following one.
-
-### `/context why <decision-id>` - Full trace
-Show the complete trajectory that led to a decision, not just the final choice.
 
 ### `/context cluster` - Entity clusters
 Show structurally equivalent entity groups.
 
 ---
 
-## Original Commands (unchanged)
+## Automatic Behavior (ALL SILENT - NO USER ACTION)
 
-### `/context log` - Log a decision
-Now also:
-- Links to active trajectory if one exists
-- Suggests similar past decisions
-- Updates co-occurrence matrix
+### At Session Start
+1. Silently read recent decisions from decisions.jsonl
+2. Load entity embeddings for structural understanding
+3. Check for unfinished trajectories
 
-### `/context search <query>` - Search for precedent
-Now also returns:
-- Trajectory summaries for matching decisions
-- Pattern matches
+### During Problem-Solving (AUTOMATIC TRAJECTORY CAPTURE)
+When Claude is investigating, debugging, or exploring:
+- Track every file read, search, grep silently
+- Note dead ends and backtracks
+- Capture pivots when direction changes
+- All logged to trajectories.jsonl without announcing
 
-### `/context recent [n]` - Show recent decisions
+### At Decision Time (AUTOMATIC LOGGING)
+When Claude chooses between alternatives, sets thresholds, makes architecture choices:
+- Silently log to decisions.jsonl
+- Update entities.json with new tags
+- Update cooccurrence.json with entity relationships
+- Link to trajectory if one exists
+- Check for pattern matches
+- No announcement - just happens
 
-### `/context project <name>` - Project history
+### At Session End
+1. Update outcomes for pending decisions
+2. Close open trajectories
+3. Pattern extraction runs automatically
 
-### `/context entity <tag>` - Entity lookup
-Now also shows:
-- Co-occurring entities
-- Success rate in decisions involving this entity
-- Structural cluster membership
-
-### `/context stats` - Graph statistics
-Now also shows:
-- Trajectory metrics (avg depth, backtrack rate)
-- Pattern counts
-- Entity cluster info
+**The user never types any /context command. This is exhaust from normal work.**
 
 ---
 
-## Automatic Behavior (enhanced)
+## Decision Types
 
-### At Session Start
-1. Read recent decisions (existing)
-2. **NEW**: Load entity embeddings to prime structural understanding
-3. **NEW**: Check for unfinished trajectories
+| Code | Type | When to use |
+|------|------|-------------|
+| arch | Architecture | System design, data flow |
+| impl | Implementation | How to build something |
+| debug | Debugging | Root cause + fix |
+| exp | Experiment | Hypothesis testing |
+| exc | Exception | Deviating from rules |
+| thresh | Threshold | Setting parameters |
+| model | Model | Algorithm selection |
+| data | Data | Source selection |
+| refactor | Refactor | Code restructuring |
 
-### During Problem-Solving
-1. **NEW**: Auto-start trajectory capture for complex tasks
-2. Check for relevant precedent (existing, now includes pattern matching)
-3. **NEW**: Surface structurally similar past decisions
+## Weight System
 
-### At Decision Time
-1. **NEW**: Before deciding, query "what typically happens"
-2. Log decision with reasoning (existing)
-3. **NEW**: Link to trajectory
-4. **NEW**: Update co-occurrence matrix
-5. **NEW**: Check for pattern match or new pattern
-
-### At Session End
-1. Update outcomes (existing)
-2. **NEW**: Close open trajectories
-3. **NEW**: Run pattern extraction on new decisions
+| Weight | Meaning | When to use |
+|--------|---------|-------------|
+| 1 | Lightweight | Quick notes, minor choices |
+| 2 | Standard | Normal decisions |
+| 3 | Heavyweight | Architecture, experiments, lessons |
 
 ---
 
@@ -133,129 +160,70 @@ Now also shows:
 
 ```
 ~/.claude/context-graph/
-  decisions.jsonl      # Decision events (existing, enhanced)
-  trajectories.jsonl   # NEW: Agent walk traces
-  entities.json        # Entity index (existing, enhanced with embeddings)
-  cooccurrence.json    # NEW: Entity co-occurrence matrix
-  patterns.json        # NEW: Extracted patterns
-  schema-v2.json       # Enhanced schema
+  decisions.jsonl      # Decision events
+  trajectories.jsonl   # Agent walk traces
+  entities.json        # Entity index with embeddings
+  cooccurrence.json    # Entity co-occurrence matrix
+  patterns.json        # Extracted patterns
+  schema-v2.json       # Schema
 ```
 
 ---
 
-## Trajectory Example
+## Examples
 
+### Decision (Lightweight)
+```json
+{"id":"a1b2","ts":"2025-12-27T12:30:00Z","p":"pjm-miso","t":"model","w":2,"title":"Use GradientBoosting","choice":"GBClassifier d=2","why":"Prevents overfitting","out":"s","ent":["ml","gbm"]}
+```
+
+### Decision (Heavyweight with Trajectory)
+```json
+{
+  "id":"a1b2","ts":"2025-12-27T12:30:00Z","p":"pjm-miso","t":"model","w":3,
+  "title":"Choose GradientBoosting over RandomForest",
+  "choice":"GBClassifier (max_depth=2)",
+  "why":"Shallow trees prevent overfitting",
+  "out":"s",
+  "ent":["ml","gbm","v70"],
+  "trajectory_id":"t001",
+  "ctx":{"task":"Algorithm selection","trigger":"V70 development"},
+  "dec":{"alt":[{"opt":"RandomForest","no":"Overfits"},{"opt":"XGBoost","no":"Complexity"}],"conf":"high","rev":true},
+  "metrics":{"pnl":125001,"wr":0.612},
+  "learned":"Regularization > complexity"
+}
+```
+
+### Trajectory
 ```json
 {
   "tid": "t001",
   "ts_start": "2025-12-27T10:00:00Z",
   "ts_end": "2025-12-27T10:45:00Z",
-  "decision_id": "d001",
+  "decision_id": "a1b2",
   "steps": [
-    {"seq": 1, "action": "search", "target": "**/*model*.py", "result": "found", "entities_touched": ["ml", "model"]},
-    {"seq": 2, "action": "read", "target": "src/model/classifier.py", "result": "insight", "entities_touched": ["gradient-boosting"]},
-    {"seq": 3, "action": "grep", "target": "RandomForest", "result": "found", "entities_touched": ["random-forest"]},
-    {"seq": 4, "action": "branch", "target": "test RandomForest hypothesis", "result": "dead_end", "pivot": true},
-    {"seq": 5, "action": "backtrack", "target": "return to GradientBoosting", "result": "insight"},
-    {"seq": 6, "action": "run", "target": "pytest tests/model/", "result": "found", "entities_touched": ["testing"]}
+    {"seq": 1, "action": "search", "target": "**/*model*.py", "result": "found", "entities_touched": ["ml"]},
+    {"seq": 2, "action": "read", "target": "src/model/classifier.py", "result": "insight", "entities_touched": ["gbm"]},
+    {"seq": 3, "action": "branch", "target": "test RandomForest", "result": "dead_end", "pivot": true},
+    {"seq": 4, "action": "backtrack", "target": "return to GradientBoosting"}
   ],
   "backtrack_count": 1,
-  "branch_count": 1,
-  "depth": 6,
-  "breadth": 5
+  "branch_count": 1
 }
 ```
 
----
-
-## Pattern Example
-
-```json
-{
-  "pid": "p001",
-  "name": "Regularization-over-complexity",
-  "description": "When choosing ML models, more regularized/simpler models outperform complex ones",
-  "trigger_conditions": ["model selection", "trading prediction", "limited training data"],
-  "typical_trajectory": ["compare models", "test complex first", "find overfitting", "simplify"],
-  "typical_outcome": "s",
-  "success_rate": 0.85,
-  "instances": ["d001", "d010"],
-  "counter_instances": []
-}
-```
-
----
-
-## Prediction Example
-
-Query: `/context predict "use neural network for price prediction"`
-
+### Prediction Output
 ```json
 {
   "query": "use neural network for price prediction",
-  "similar_decisions": ["d001"],
+  "similar_decisions": ["a1b2"],
   "predicted_outcome": "likely underperform simpler models",
   "confidence": 0.7,
   "key_factors": [
-    "d001 rejected neural networks as 'black box, harder to debug'",
-    "Pattern 'regularization-over-complexity' applies",
-    "No successful neural network decisions in graph"
+    "d001 rejected neural networks as 'black box'",
+    "Pattern 'regularization-over-complexity' applies"
   ],
-  "risks": [
-    "Debugging difficulty when predictions fail",
-    "Overfitting with limited training data"
-  ],
-  "suggested_trajectory": [
-    "First establish baseline with GradientBoosting",
-    "If neural net attempted, use heavy regularization",
-    "Prepare interpretability tools"
-  ]
+  "risks": ["Debugging difficulty", "Overfitting"],
+  "suggested_trajectory": ["Baseline with GBM first", "Heavy regularization if NN attempted"]
 }
 ```
-
----
-
-## Co-occurrence Matrix Example
-
-```json
-{
-  "gradient-boosting": {
-    "regularization": 2,
-    "v70": 2,
-    "ml": 2,
-    "hyperparameters": 1,
-    "overfitting": 1
-  },
-  "position-sizing": {
-    "confidence": 1,
-    "risk-management": 1,
-    "thresholds": 1
-  }
-}
-```
-
-This enables queries like:
-- "What entities typically appear with position-sizing?" -> confidence, risk-management
-- "Are 'regularization' and 'overfitting' structurally similar?" -> Yes, they co-occur with the same entities
-
----
-
-## Migration from v1
-
-Your existing decisions.jsonl is fully compatible. Run:
-1. `/context migrate` - Generates cooccurrence.json from existing decisions
-2. Start using `/context trace` for new work
-3. Patterns will emerge as decisions accumulate
-
----
-
-## Implementation Notes
-
-The key insight from the article: "The schema isn't the starting point. It's the output."
-
-Don't over-engineer the structure. Let it emerge:
-- Trajectories reveal what entities actually matter
-- Co-occurrence reveals structural relationships
-- Patterns emerge from repeated decision sequences
-
-Start logging trajectories. The rest follows.

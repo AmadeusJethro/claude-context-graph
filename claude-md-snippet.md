@@ -1,38 +1,50 @@
-# CONTEXT GRAPH (ALWAYS ACTIVE)
+# CONTEXT GRAPH (FULLY AUTOMATIC)
 
-Decision trace system that captures not just WHAT happened, but WHY. Creates searchable precedent across all projects and sessions.
+Decision trace system with trajectory capture. Captures not just WHAT happened, but the WALK through problem space that led there. Creates searchable precedent across all projects and sessions.
+
+**NO COMMANDS NEEDED - everything happens silently as exhaust from normal work.**
 
 ## Storage
 
-- Global: `~/.claude/context-graph/decisions.jsonl`
-- Per-project: `[project]/.claude/context-graph/local.jsonl`
+- Decisions: `~/.claude/context-graph/decisions.jsonl`
+- Trajectories: `~/.claude/context-graph/trajectories.jsonl`
 - Entity index: `~/.claude/context-graph/entities.json`
+- Co-occurrence: `~/.claude/context-graph/cooccurrence.json`
 
-## Automatic Capture Protocol
+## Auto-Trajectory (during work)
 
-**Before implementing non-trivial work:**
-1. Check for precedent: Search context graph for similar decisions
-2. If precedent exists: Reference it, note if following or deviating
-3. Log the decision with: context, alternatives, reasoning
+When investigating, debugging, or exploring:
+- Silently track files read, searches run, dead ends hit
+- Note pivots (when direction changes) and backtracks
+- Store in trajectories.jsonl without announcing
 
-**After completing work:**
-1. Update decision outcome: success/failure, metrics, lessons
-2. Link related decisions if discovered
+## Auto-Precedent (before decisions)
 
-## Decision Logging Triggers
+Before making significant choices:
+- Silently check decisions.jsonl for similar past decisions
+- Check cooccurrence.json for related entities
+- Surface relevant precedent in reasoning (don't announce "checking precedent")
 
-Log a decision trace when:
-- Choosing between alternatives (log rejected options + why)
-- Setting thresholds/parameters (log rationale)
-- Making exceptions to rules (log why exception was valid)
-- Debugging completed (log root cause + fix approach)
-- Experiment completed (log hypothesis + outcome)
-- Rejecting an approach (log why it was rejected)
+## Auto-Log (after decisions)
 
-## Decision Format (Lightweight ~200 bytes)
+After any of these, silently append to decisions.jsonl:
+- Choosing between alternatives (log what was rejected + why)
+- Setting thresholds/parameters
+- Making exceptions to rules
+- Completing experiments (log hypothesis + outcome)
+- Architecture/implementation choices
+
+## Auto-Update (on every log)
+
+When logging a decision, also silently:
+- Update entities.json with new entity tags
+- Update cooccurrence.json with entity co-occurrences
+- Link to trajectory if one was captured
+
+## Decision Format
 
 ```json
-{"id":"a1b2","ts":"2025-12-27T12:30:00Z","p":"project","t":"impl","w":2,"title":"Brief title","choice":"What was decided","why":"Why this choice","out":"s","ent":["tag1","tag2"]}
+{"id":"d001","ts":"ISO","p":"project","t":"type","w":2,"title":"Brief","choice":"What","why":"Why","out":"s","ent":["tags"]}
 ```
 
 Fields: id, ts=timestamp, p=project, t=type, w=weight(1-3), out=outcome(s/f/p/x/?), ent=entities
@@ -54,10 +66,4 @@ Fields: id, ts=timestamp, p=project, t=type, w=weight(1-3), out=outcome(s/f/p/x/
 - Weight 2: Normal implementation decisions
 - Weight 3: Architecture, experiments, lessons learned
 
-## Query Before Acting
-
-When facing a significant decision, search for precedent:
-- `/context search <keywords>` or grep decisions.jsonl
-- Check if similar problem was solved before
-- Reference prior decision if following same approach
-- Note deviation if taking different path
+**User never types commands. This is exhaust from normal work.**
